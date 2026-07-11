@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
 from case_engine import open_case
 from models import CASES, SKINS, UPGRADE_COST, UPGRADE_REQUIRED
 import hashlib
@@ -10,8 +10,8 @@ import json
 import os
 import random
 from datetime import datetime
-from urllib.parse import urlencode
-import requests
+from urllib.parse import urlencode, parse_qs
+import urllib.request
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -19,7 +19,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 USERS_FILE = "users.json"
 DROPS_FILE = "drops.json"
-STEAM_API_KEY = os.getenv("STEAM_API_KEY", "")
 SITE_URL = os.getenv("SITE_URL", "https://cs-case.onrender.com")
 
 def load_users():
@@ -57,27 +56,43 @@ def init_stats():
 # ========== STEAM LOGIN ==========
 
 @app.get("/api/steam/login")
-def steam_login():
+def steam_login(request: Request):
     """Перенаправляет на Steam для входа"""
+    callback_url = f"{SITE_URL}/api/steam/callback"
+    
     params = {
         "openid.ns": "http://specs.openid.net/auth/2.0",
         "openid.mode": "checkid_setup",
-        "openid.return_to": f"{SITE_URL}/api/steam/callback",
+        "openid.return_to": callback_url,
         "openid.realm": SITE_URL,
         "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
         "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
     }
-    return RedirectResponse(f"https://steamcommunity.com/openid/login?{urlencode(params)}")
+    
+    login_url = f"https://steamcommunity.com/openid/login?{urlencode(params)}"
+    return RedirectResponse(url=login_url)
 
 @app.get("/api/steam/callback")
-def steam_callback(openid_claimed_id: str = Query(None)):
+def steam_callback(request: Request, openid_mode: str = Query(None)):
     """Callback после входа через Steam"""
-    if not openid_claimed_id:
-        raise HTTPException(400, "Ошибка входа через Steam")
     
-    steam_id = openid_claimed_id.split("/")[-1]
+    # Получаем все параметры
+    params = dict(request.query_params)
+    print(f"Steam callback params: {params}")
     
-    # Проверяем или создаём пользователя
+    # Проверяем что вход выполнен
+    if params.get("openid.mode") != "id_res":
+        raise HTTPException(400, "Вход отменён или не выполнен")
+    
+    # Извлекаем Steam ID
+    claimed_id = params.get("openid.claimed_id", "")
+    if not claimed_id:
+        raise HTTPException(400, "Не удалось получить Steam ID")
+    
+    steam_id = claimed_id.split("/")[-1]
+    print(f"Steam ID: {steam_id}")
+    
+    # Ищем или создаём пользователя
     uid = None
     for u_id, data in users.items():
         if data.get("steam_id") == steam_id:
@@ -87,51 +102,39 @@ def steam_callback(openid_claimed_id: str = Query(None)):
     username = f"Player_{steam_id[-4:]}"
     avatar = ""
     
-    # Получаем данные из Steam API
-    if STEAM_API_KEY:
-        try:
-            resp = requests.get(
-                f"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={STEAM_API_KEY}&steamids={steam_id}",
-                timeout=5
-            )
-            if resp.ok:
-                data = resp.json()
+    # Пробуем получить данные из Steam API
+    try:
+        api_key = os.getenv("STEAM_API_KEY", "")
+        if api_key:
+            api_url = f"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={api_key}&steamids={steam_id}"
+            with urllib.request.urlopen(api_url, timeout=5) as resp:
+                import json as j
+                data = j.loads(resp.read())
                 players = data.get("response", {}).get("players", [])
                 if players:
                     username = players[0].get("personaname", username)
                     avatar = players[0].get("avatarfull", "")
-        except:
-            pass
+    except Exception as e:
+        print(f"Не удалось получить данные Steam: {e}")
     
     if not uid:
         uid = str(uuid.uuid4())[:8]
-        users[uid] = {
-            "steam_id": steam_id,
-            "username": username,
-            "avatar": avatar,
-            "balance": 1000,
-            "inventory": [],
-            "stats": init_stats(),
-            "trade_url": "",
-            "token": ""
-        }
     
-    # Генерируем токен
-    token = hashlib.sha256(f"{uid}{steam_id}".encode()).hexdigest()[:16]
-    users[uid]["token"] = token
-    users[uid]["username"] = username
-    users[uid]["avatar"] = avatar
+    users[uid] = {
+        "steam_id": steam_id,
+        "username": username,
+        "avatar": avatar,
+        "balance": users[uid]["balance"] if uid in users else 1000,
+        "inventory": users[uid]["inventory"] if uid in users else [],
+        "stats": users[uid].get("stats", init_stats()) if uid in users else init_stats(),
+        "trade_url": users[uid].get("trade_url", "") if uid in users else ""
+    }
     save_users(users)
     
-    return RedirectResponse(f"/?user_id={uid}&token={token}&username={username}&avatar={avatar}")
-
-@app.get("/api/auth_by_token")
-def auth_by_token(user_id: str, token: str):
-    if user_id not in users: raise HTTPException(404, "Пользователь не найден")
-    u = users[user_id]
-    if u.get("token") != token: raise HTTPException(400, "Неверный токен")
-    if "stats" not in u: u["stats"] = init_stats()
-    return {"user_id": user_id, "username": u["username"], "avatar": u.get("avatar",""), "balance": u["balance"], "stats": u["stats"]}
+    # Перенаправляем на главную с параметрами
+    return RedirectResponse(
+        f"/?user_id={uid}&username={username}&avatar={avatar}"
+    )
 
 # ========== API ==========
 
@@ -155,14 +158,14 @@ def info(user_id: str):
     if user_id not in users: raise HTTPException(404, "Пользователь не найден")
     u = users[user_id]
     if "stats" not in u: u["stats"] = init_stats()
-    return {"username": u["username"], "avatar": u.get("avatar",""), "balance": u["balance"], "inventory": u["inventory"], "stats": u["stats"], "trade_url": u.get("trade_url","")}
+    return {"username": u["username"], "avatar": u.get("avatar",""), "balance": u["balance"], "inventory": u["inventory"], "stats": u["stats"]}
 
 @app.get("/api/user_profile")
 def user_profile(user_id: str):
     if user_id not in users: raise HTTPException(404, "Пользователь не найден")
     u = users[user_id]
     if "stats" not in u: u["stats"] = init_stats()
-    return {"username": u["username"], "avatar": u.get("avatar",""), "stats": u["stats"], "inventory_count": len(u["inventory"])}
+    return {"username": u["username"], "stats": u["stats"], "inventory_count": len(u["inventory"])}
 
 @app.post("/api/open")
 def open_case_endpoint(user_id: str, case_id: str):
@@ -177,12 +180,10 @@ def open_case_endpoint(user_id: str, case_id: str):
     u["stats"]["total_spent"] += case["price"]
     result = open_case(case)
     u["inventory"].append(result)
-    if u["stats"]["best_drop"] is None or result["price"] > u["stats"]["best_drop"]["price"]:
-        u["stats"]["best_drop"] = {"name": result["name"], "price": result["price"], "rarity": result["rarity"], "color": result["color"], "image": result["image"]}
     save_users(users)
     drops.append({"username": u["username"], "user_id": user_id, "skin_name": result["name"], "skin_image": result["image"], "rarity": result["rarity"], "color": result["color"], "price": result["price"], "case_name": case["name"], "time": datetime.now().isoformat()})
     save_drops(drops)
-    return {"result": result, "balance": u["balance"], "stats": u["stats"]}
+    return {"result": result, "balance": u["balance"]}
 
 @app.get("/api/drops")
 def get_drops():
@@ -195,8 +196,6 @@ def sell(user_id: str, index: int):
     if index < 0 or index >= len(u["inventory"]): raise HTTPException(400, "Скин не найден")
     sold = u["inventory"].pop(index)
     u["balance"] += sold.get("price", 0)
-    if "stats" not in u: u["stats"] = init_stats()
-    u["stats"]["total_earned"] += sold.get("price", 0)
     save_users(users)
     return {"sold": sold, "balance": u["balance"], "inventory": u["inventory"]}
 
