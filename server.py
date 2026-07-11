@@ -9,6 +9,7 @@ import uuid
 import json
 import os
 import random
+from datetime import datetime
 
 app = FastAPI()
 
@@ -16,6 +17,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 USERS_FILE = "users.json"
+DROPS_FILE = "drops.json"
 
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -32,7 +34,25 @@ def save_users(u):
     with open(USERS_FILE, "w") as f:
         f.write(json.dumps(u, ensure_ascii=False, indent=2))
 
+def load_drops():
+    if os.path.exists(DROPS_FILE):
+        try:
+            with open(DROPS_FILE, "r") as f:
+                c = f.read()
+                if c.strip():
+                    return json.loads(c)
+        except:
+            pass
+    return []
+
+def save_drops(d):
+    # Храним только последние 100 дропов
+    d = d[-100:]
+    with open(DROPS_FILE, "w") as f:
+        f.write(json.dumps(d, ensure_ascii=False, indent=2))
+
 users = load_users()
+drops = load_drops()
 
 def hash_password(p):
     return hashlib.sha256(p.encode()).hexdigest()
@@ -88,6 +108,18 @@ def info(user_id: str):
     if "stats" not in u: u["stats"] = init_stats()
     return {"username": u["username"], "balance": u["balance"], "inventory": u["inventory"], "stats": u["stats"], "trade_url": u.get("trade_url","")}
 
+@app.get("/api/user_profile")
+def user_profile(user_id: str):
+    """Публичный профиль пользователя"""
+    if user_id not in users: raise HTTPException(404, "Пользователь не найден")
+    u = users[user_id]
+    if "stats" not in u: u["stats"] = init_stats()
+    return {
+        "username": u["username"],
+        "stats": u["stats"],
+        "inventory_count": len(u["inventory"])
+    }
+
 @app.post("/api/open")
 def open_case_endpoint(user_id: str, case_id: str):
     if user_id not in users: raise HTTPException(404, "Пользователь не найден")
@@ -108,7 +140,27 @@ def open_case_endpoint(user_id: str, case_id: str):
         mi, mp = max(prices, key=lambda x: x[1])
         u["stats"]["most_expensive"] = {"name": u["inventory"][mi]["name"], "price": mp, "rarity": u["inventory"][mi]["rarity"], "color": u["inventory"][mi]["color"], "image": u["inventory"][mi]["image"]}
     save_users(users)
+    
+    # Добавляем в ленту дропов
+    drops.append({
+        "username": u["username"],
+        "user_id": user_id,
+        "skin_name": result["name"],
+        "skin_image": result["image"],
+        "rarity": result["rarity"],
+        "color": result["color"],
+        "price": result["price"],
+        "case_name": case["name"],
+        "time": datetime.now().isoformat()
+    })
+    save_drops(drops)
+    
     return {"result": result, "balance": u["balance"], "stats": u["stats"]}
+
+@app.get("/api/drops")
+def get_drops():
+    """Лента последних выпадений"""
+    return {"drops": list(reversed(drops[-30:]))}
 
 @app.post("/api/sell")
 def sell(user_id: str, index: int):
