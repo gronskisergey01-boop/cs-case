@@ -510,6 +510,43 @@ async function addBalanceDemo(amount){
         closeAddBalance();
     }catch(e){}
 }
+// ===== ЛЕНТА ДРОПОВ =====
+async function loadDrops(){
+    try{
+        const r=await fetch('/api/drops');
+        const d=await r.json();
+        const list=document.getElementById('dropsList');
+        if(!d.drops||!d.drops.length){list.innerHTML='<div style="color:var(--text2);text-align:center;padding:20px">Пока нет выпадений</div>';return}
+        list.innerHTML=d.drops.map(drop=>`
+            <div class="drop-item">
+                <img src="${drop.skin_image}" onerror="this.style.display='none'">
+                <div class="drop-info">
+                    <div class="drop-skin" style="color:${drop.color}">${drop.skin_name}</div>
+                    <div class="drop-user" onclick="openPublicProfile('${drop.user_id}')">${drop.username}</div>
+                    <div class="drop-case">${drop.case_name}</div>
+                </div>
+                <div class="drop-time">${new Date(drop.time).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</div>
+            </div>
+        `).join('');
+    }catch(e){}
+}
+
+// ===== ПУБЛИЧНЫЙ ПРОФИЛЬ =====
+async function openPublicProfile(uid){
+    try{
+        const r=await fetch(`/api/user_profile?user_id=${uid}`);
+        const d=await r.json();
+        document.getElementById('publicUsername').textContent=d.username;
+        const s=d.stats;
+        document.getElementById('publicStatsGrid').innerHTML=`
+            <div class="stat-card"><div class="stat-value">${s.total_opened||0}</div><div class="stat-label">Открыто кейсов</div></div>
+            <div class="stat-card"><div class="stat-value">${(s.total_spent||0).toLocaleString()}💰</div><div class="stat-label">Потрачено</div></div>
+            <div class="stat-card"><div class="stat-value">${d.inventory_count||0}</div><div class="stat-label">Скинов в инвентаре</div></div>
+            <div class="stat-card"><div class="stat-label">Лучший дроп</div>${s.best_drop?`<div class="best-drop"><img src="${s.best_drop.image||''}"><span style="font-size:11px">${s.best_drop.name}<br><span style="color:${s.best_drop.color||'#fff'}">${s.best_drop.price?.toLocaleString()}💰</span></span></div>`:'<div style="color:var(--text2)">—</div>'}</div>
+        `;
+        navigate('public-profile');
+    }catch(e){}
+}
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('keypress',e=>{if(e.key==='Enter'){if(!document.getElementById('loginForm').classList.contains('hidden'))handleLogin();else if(!document.getElementById('registerForm').classList.contains('hidden'))handleRegister()}});
