@@ -2,5 +2,4 @@ fastapi
 uvicorn
 python-multipart
 Pillow
-steam-openid
-sqlalchemy
+requests
