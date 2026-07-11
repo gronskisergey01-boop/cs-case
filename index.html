@@ -89,6 +89,16 @@
         .back-btn{padding:8px 16px;background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:12px;margin-bottom:16px}
         .back-btn:hover{border-color:var(--red);color:#fff}
         .withdraw-history-item{background:var(--bg2);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+        .drop-feed {background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.drop-item {display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.03);transition:all 0.2s}
+.drop-item:hover {background:var(--bg3)}
+.drop-item img {width:60px;height:45px;object-fit:contain}
+.drop-info {flex:1}
+.drop-info .drop-skin {font-size:13px;font-weight:600}
+.drop-info .drop-user {font-size:11px;color:var(--text2);cursor:pointer}
+.drop-info .drop-user:hover {color:var(--gold)}
+.drop-info .drop-case {font-size:10px;color:var(--text2)}
+.drop-time {font-size:10px;color:var(--text2);text-align:right;white-space:nowrap}
         @media(max-width:768px){.cases-grid{grid-template-columns:repeat(2,1fr)}.upgrade-layout{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
     </style>
 </head>
@@ -133,7 +143,16 @@
     </div>
 
     <!-- ГЛАВНАЯ (КЕЙСЫ) -->
-    <div class="page active" id="page-home"><div class="cases-grid" id="casesGrid"></div></div>
+        <!-- ГЛАВНАЯ (КЕЙСЫ) -->
+    <div class="page active" id="page-home">
+        <div class="cases-grid" id="casesGrid"></div>
+        <div class="drop-feed" style="margin-top:30px">
+            <div class="section-title">🔥 Лента выпадений</div>
+            <div class="drops-list" id="dropsList" style="max-height:400px;overflow-y:auto">
+                <div style="color:var(--text2);text-align:center;padding:20px">Загрузка...</div>
+            </div>
+        </div>
+    </div>
 
     <!-- СТРАНИЦА КЕЙСА -->
     <div class="page" id="page-case">
@@ -436,7 +455,12 @@ async function withdrawSkin(index){
         loadWithdrawPage();await loadUserData();
     }catch(e){alert('Ошибка при выводе')}
 }
-
+    <!-- ПУБЛИЧНЫЙ ПРОФИЛЬ -->
+    <div class="page" id="page-public-profile">
+        <button class="back-btn" onclick="navigate('home')">← Назад</button>
+        <h2 style="margin-bottom:16px">👤 <span id="publicUsername"></span></h2>
+        <div class="stats-grid" id="publicStatsGrid"></div>
+    </div>
 // ===== ПРОФИЛЬ =====
 function renderProfilePage(){
     document.getElementById('profileUsername').textContent=username;
