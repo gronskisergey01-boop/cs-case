@@ -2,98 +2,49 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>CS CASE — Открывай кейсы</title>
+    <title>CS CASE</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--border:#252530;--red:#ff3b5c;--gold:#ffd940;--blue:#3b7fff;--pink:#e040fb;--purple:#7c4dff;--green:#00e676;--text:#e0e0e0;--text2:#9090a0;--radius:14px;--radius-sm:10px}
         *{margin:0;padding:0;box-sizing:border-box}
         body{background:var(--bg);color:var(--text);font-family:'Montserrat',Arial,sans-serif;min-height:100vh;overflow-x:hidden}
-        
-        /* Кнопка входа */
-        .login-btn{position:fixed;top:16px;right:20px;z-index:1001;padding:10px 18px;background:linear-gradient(135deg,#1a1a2e,#2a2a3e);border:2px solid #5b8def;border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s;text-decoration:none;display:flex;align-items:center;gap:8px}
-        .login-btn:hover{border-color:#fff;box-shadow:0 0 20px rgba(91,141,239,0.3)}
-        .login-btn img{height:20px}
-        
-        /* Лента слева */
-        .drops-sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;overflow-y:auto;padding:16px 10px 16px 16px;z-index:100;pointer-events:none;display:flex;flex-direction:column;gap:6px}
-        .drops-sidebar::-webkit-scrollbar{width:3px}.drops-sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-        .drop-item-side{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;pointer-events:auto;cursor:pointer;transition:all 0.2s;animation:fadeIn 0.3s ease}
-        .drop-item-side:hover{background:var(--bg3);border-color:var(--gold)}
-        .drop-item-side img{width:30px;height:22px;object-fit:contain;float:left;margin-right:6px;border-radius:3px}
-        .drop-item-side .ds-name{font-weight:600;font-size:10px}.drop-item-side .ds-user{font-size:9px;color:var(--text2)}
-        @keyframes fadeIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
-        
-        /* Главная */
-        .main-content{margin-left:220px;padding:20px;min-height:100vh}
+        .login-btn{position:fixed;top:16px;right:20px;z-index:1001;padding:10px 18px;background:linear-gradient(135deg,#1a1a2e,#2a2a3e);border:2px solid #5b8def;border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px}.login-btn:hover{border-color:#fff;box-shadow:0 0 20px rgba(91,141,239,0.3)}.login-btn img{height:20px}
+        .drops-sidebar{position:fixed;top:0;left:0;width:200px;height:100vh;overflow-y:auto;padding:16px 8px;z-index:100;display:flex;flex-direction:column;gap:4px}.drops-sidebar::-webkit-scrollbar{width:3px}.drops-sidebar::-webkit-scrollbar-thumb{background:var(--border)}
+        .drop-item-side{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;font-size:10px;cursor:pointer;animation:fadeIn 0.3s ease}.drop-item-side:hover{background:var(--bg3);border-color:var(--gold)}.drop-item-side img{width:24px;height:18px;object-fit:contain;float:left;margin-right:6px}.drop-item-side .ds-name{font-weight:600}.drop-item-side .ds-user{font-size:9px;color:var(--text2)}@keyframes fadeIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+        .main-content{margin-left:200px;padding:20px;min-height:100vh}
         .topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:24px;flex-wrap:wrap;gap:10px}
         .topbar-logo{font-size:24px;font-weight:900;cursor:pointer}.topbar-logo .cs{color:#fff}.topbar-logo .case{color:var(--red)}
-        .topbar-right{display:flex;align-items:center;gap:12px}
-        .balance-display{font-size:14px;color:var(--text2)}.balance-display span{color:var(--gold);font-weight:700}
-        .btn-add{background:var(--gold);color:#000;border:none;padding:8px 14px;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-size:12px;font-family:inherit}.btn-add:hover{box-shadow:0 4px 15px rgba(255,217,64,0.4)}
-        .nav{display:flex;gap:8px;flex-wrap:wrap}
-        .nav-btn{padding:8px 16px;background:var(--bg2);border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);cursor:pointer;font-weight:600;font-size:11px;font-family:inherit;text-transform:uppercase}.nav-btn:hover,.nav-btn.active{border-color:var(--red);color:#fff;background:var(--bg3)}.nav-btn.active{border-color:var(--gold);color:var(--gold)}
-        
+        .topbar-right{display:flex;align-items:center;gap:12px}.balance-display{font-size:14px;color:var(--text2)}.balance-display span{color:var(--gold);font-weight:700}
+        .btn-add{background:var(--gold);color:#000;border:none;padding:8px 14px;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-size:12px;font-family:inherit}
+        .nav{display:flex;gap:8px;flex-wrap:wrap}.nav-btn{padding:8px 16px;background:var(--bg2);border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);cursor:pointer;font-weight:600;font-size:11px;font-family:inherit;text-transform:uppercase}.nav-btn:hover,.nav-btn.active{border-color:var(--red);color:#fff;background:var(--bg3)}.nav-btn.active{border-color:var(--gold);color:var(--gold)}
         .page{display:none}.page.active{display:block}
         .cases-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
         .case-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:all 0.25s;text-align:center}.case-card:hover{border-color:var(--red);transform:translateY(-4px);box-shadow:0 12px 35px rgba(0,0,0,0.4)}
         .case-card img{width:110px;height:80px;object-fit:contain;margin-bottom:8px}.case-name{font-weight:700;font-size:13px}.case-price{color:var(--gold);font-weight:700;font-size:12px}.case-type{font-size:9px;color:var(--text2);text-transform:uppercase;margin-bottom:4px}
-        
         .roll-window{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);height:240px;overflow:hidden;position:relative;margin-bottom:16px}
-        .roll-window::before,.roll-window::after{content:'';position:absolute;top:0;width:2px;height:100%;z-index:10;background:linear-gradient(180deg,rgba(255,217,64,0.7),rgba(255,217,64,0.1),rgba(255,217,64,0.7))}
-        .roll-window::before{left:calc(50% - 1px)}.roll-window::after{left:calc(50% + 1px)}
+        .roll-window::before,.roll-window::after{content:'';position:absolute;top:0;width:2px;height:100%;z-index:10;background:linear-gradient(180deg,rgba(255,217,64,0.7),rgba(255,217,64,0.1),rgba(255,217,64,0.7))}.roll-window::before{left:calc(50% - 1px)}.roll-window::after{left:calc(50% + 1px)}
         .edge-fade{position:absolute;top:0;width:80px;height:100%;z-index:9;pointer-events:none}.edge-fade.left{left:0;background:linear-gradient(90deg,var(--bg2) 0%,transparent 100%)}.edge-fade.right{right:0;background:linear-gradient(270deg,var(--bg2) 0%,transparent 100%)}
         .skins-strip{display:flex;height:100%;align-items:center}
-        .skin-item{min-width:220px;height:200px;margin:0 12px;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--bg3);border:1px solid var(--border);position:relative}
-        .rarity-stripe{position:absolute;top:0;left:0;right:0;height:3px}.skin-item img{width:170px;height:130px;object-fit:contain}.skin-name{font-size:11px;font-weight:600;padding:0 8px;color:#ccc}
-        
+        .skin-item{min-width:220px;height:200px;margin:0 12px;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--bg3);border:1px solid var(--border);position:relative}.rarity-stripe{position:absolute;top:0;left:0;right:0;height:3px}.skin-item img{width:170px;height:130px;object-fit:contain}.skin-name{font-size:11px;font-weight:600;padding:0 8px;color:#ccc}
         .btn-roll{display:block;width:100%;padding:18px;background:linear-gradient(135deg,var(--red) 0%,#d42a48 100%);color:#fff;border:none;border-radius:var(--radius-sm);font-size:17px;font-weight:800;cursor:pointer;font-family:inherit;text-transform:uppercase;margin-bottom:20px}.btn-roll:disabled{opacity:0.5;cursor:not-allowed}
-        .drop-table{background:var(--bg2);border-radius:var(--radius);overflow:hidden;margin-top:10px}.drop-table h3{padding:16px 20px;font-size:14px;color:var(--text2);border-bottom:1px solid var(--border)}
-        .drop-row{display:flex;align-items:center;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.03);gap:12px;font-size:13px}.drop-rarity-dot{width:10px;height:10px;border-radius:50%}.drop-name{flex:1;font-weight:600}.drop-chance{color:var(--text2);font-size:12px}.drop-price{color:var(--gold);font-weight:700;text-align:right;font-size:12px}
-        
+        .drop-table{background:var(--bg2);border-radius:var(--radius);overflow:hidden;margin-top:10px}.drop-table h3{padding:16px 20px;font-size:14px;color:var(--text2);border-bottom:1px solid var(--border)}.drop-row{display:flex;align-items:center;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.03);gap:12px;font-size:13px}.drop-rarity-dot{width:10px;height:10px;border-radius:50%}.drop-name{flex:1;font-weight:600}.drop-chance{color:var(--text2);font-size:12px}.drop-price{color:var(--gold);font-weight:700;text-align:right;font-size:12px}
         .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-        .inv-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center;position:relative}.inv-item img{width:90px;height:65px;object-fit:contain}.inv-name{font-size:10px;font-weight:600;color:#bbb}.inv-rarity{font-size:9px;font-weight:700;text-transform:uppercase}.inv-price{font-size:10px;color:var(--gold);font-weight:700}
-        .btn-sell{margin-top:6px;padding:4px 12px;background:var(--green);color:#000;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;width:100%}
-        .btn-withdraw{margin-top:4px;padding:4px 12px;background:var(--purple);color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;width:100%}
-        
-        .upgrade-layout{display:grid;grid-template-columns:1fr 280px;gap:20px}.upgrade-info{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
-        .btn-upgrade{padding:12px 24px;background:linear-gradient(135deg,var(--purple),#5a3dc7);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;text-transform:uppercase;width:100%}.btn-upgrade:disabled{opacity:0.5}
-        .inv-select-hint{position:absolute;top:5px;left:5px;background:var(--purple);color:#fff;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center}
-        .inv-item.selected-upgrade{border-color:var(--purple)!important;box-shadow:0 0 10px rgba(124,77,255,0.5)}.inv-item.selected-upgrade .inv-select-hint{display:flex}
-        
-        .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
-        .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center}.stat-value{font-size:22px;font-weight:800;color:var(--gold)}.stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;margin-top:4px}
-        
+        .inv-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center;position:relative}.inv-item img{width:90px;height:65px;object-fit:contain}.inv-name{font-size:10px;font-weight:600;color:#bbb}.inv-rarity{font-size:9px;font-weight:700;text-transform:uppercase}.inv-price{font-size:10px;color:var(--gold);font-weight:700}.btn-sell,.btn-withdraw{margin-top:4px;padding:4px 8px;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;width:100%}.btn-sell{background:var(--green);color:#000}.btn-withdraw{background:var(--purple);color:#fff}
+        .upgrade-layout{display:grid;grid-template-columns:1fr 280px;gap:20px}.upgrade-info{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}.btn-upgrade{padding:12px 24px;background:linear-gradient(135deg,var(--purple),#5a3dc7);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;text-transform:uppercase;width:100%}.btn-upgrade:disabled{opacity:0.5}
+        .inv-select-hint{position:absolute;top:5px;left:5px;background:var(--purple);color:#fff;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center}.inv-item.selected-upgrade{border-color:var(--purple)!important;box-shadow:0 0 10px rgba(124,77,255,0.5)}.inv-item.selected-upgrade .inv-select-hint{display:flex}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center}.stat-value{font-size:22px;font-weight:800;color:var(--gold)}.stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;margin-top:4px}
         .msg-error{color:var(--red);text-align:center;margin:10px 0;min-height:20px;font-size:13px}.msg-success{color:var(--green);text-align:center;margin:10px 0;min-height:20px;font-size:13px}
-        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:2000}
-        .modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:30px;width:400px;text-align:center;max-height:80vh;overflow-y:auto}
-        .back-btn{padding:8px 16px;background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:12px;margin-bottom:16px}
-        
-        /* Модалка входа */
-        .auth-input{width:100%;padding:13px 16px;margin-bottom:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:#fff;font-size:14px;font-family:inherit;outline:none}.auth-input:focus{border-color:var(--red)}
-        .btn-auth{width:100%;padding:14px;background:linear-gradient(135deg,#1a1a2e,#2a2a3e);border:2px solid #5b8def;border-radius:var(--radius-sm);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
-        .btn-auth:hover{border-color:#fff;box-shadow:0 0 20px rgba(91,141,239,0.3)}
-        
+        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:2000}.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:30px;width:400px;text-align:center}.auth-input{width:100%;padding:13px 16px;margin-bottom:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:#fff;font-size:14px;font-family:inherit;outline:none}.btn-auth{width:100%;padding:14px;background:linear-gradient(135deg,#1a1a2e,#2a2a3e);border:2px solid #5b8def;border-radius:var(--radius-sm);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}.back-btn{padding:8px 16px;background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:12px;margin-bottom:16px}.hidden{display:none!important}
         @media(max-width:900px){.drops-sidebar{display:none}.main-content{margin-left:0}}
     </style>
 </head>
 <body>
-
-<!-- Кнопка входа (видна всегда) -->
-<div id="loginButtonContainer">
-    <button class="login-btn" id="headerLoginBtn" onclick="showLoginModal()">
-        <img src="https://community.steamstatic.com/public/shared/images/header/globalheader_logo.png"> Войти
-    </button>
-</div>
-
-<!-- Лента дропов слева -->
+<button class="login-btn" id="headerLoginBtn" onclick="showLoginModal()"><img src="https://community.steamstatic.com/public/shared/images/header/globalheader_logo.png"> Войти</button>
 <div class="drops-sidebar" id="dropsSidebar"></div>
-
-<!-- Основной контент -->
-<div class="main-content" id="mainContent">
-    <!-- Шапка -->
-    <div class="topbar" id="topbar">
+<div class="main-content">
+    <div class="topbar">
         <div class="topbar-logo"><span class="cs">CS</span><span class="case">CASE</span></div>
-        <div class="topbar-right" id="topbarRight">
+        <div class="topbar-right">
             <div class="balance-display hidden" id="balanceDisplay">Баланс: <span id="balance">0</span> 💰 <button class="btn-add" onclick="showAddBalance()">+</button></div>
             <span id="topbarUsername" style="font-weight:700;font-size:14px"></span>
         </div>
@@ -105,10 +56,7 @@
             <button class="nav-btn" style="border-color:var(--red);color:var(--red)" onclick="logout()" id="logoutBtn">Выйти</button>
         </div>
     </div>
-
-    <!-- Страницы -->
     <div class="page active" id="page-home"><div class="cases-grid" id="casesGrid"></div></div>
-    
     <div class="page" id="page-case">
         <button class="back-btn" onclick="navigate('home')">← Назад</button>
         <h2 id="caseTitle" style="text-align:center;margin-bottom:4px"></h2>
@@ -118,187 +66,64 @@
         <button class="btn-roll" id="openBtn" onclick="openSelectedCase()">Открыть (<span id="btnPrice">0</span>💰)</button>
         <div class="drop-table" id="dropTable"></div>
     </div>
-    
     <div class="page" id="page-inventory"><div class="inv-grid" id="inventoryGrid"></div></div>
-    
     <div class="page" id="page-upgrade">
         <div class="upgrade-layout"><div class="inv-grid" id="upgradeInvGrid"></div>
         <div class="upgrade-info"><h3>🔮 Контракт</h3><p style="font-size:12px;margin:10px 0">Выбрано: <b id="upgradeCount">0</b>/10</p><p style="font-size:12px;color:var(--text2);margin-bottom:16px">500💰</p><button class="btn-upgrade" id="confirmUpgradeBtn" disabled onclick="confirmUpgrade()">Обменять</button><button class="btn-ghost" style="margin-top:10px" onclick="cancelUpgradeSelection()">Сброс</button></div></div>
     </div>
-    
     <div class="page" id="page-public-profile"><button class="back-btn" onclick="navigate('home')">← Назад</button><h2>👤 <span id="publicUsername"></span></h2><div class="stats-grid" id="publicStatsGrid"></div></div>
-    
     <div class="page" id="page-profile"><h2>👤 <span id="profileUsername"></span></h2><div class="stats-grid" id="statsGrid"></div></div>
 </div>
-
-<!-- Модалка входа -->
-<div class="modal-overlay hidden" id="loginModal">
-    <div class="modal">
-        <h3 style="margin-bottom:16px">🚀 Вход</h3>
-        <input class="auth-input" type="text" id="steamIdInput" placeholder="Steam ID (цифры из ссылки)">
-        <input class="auth-input" type="text" id="steamNameInput" placeholder="Никнейм">
-        <div class="msg-error" id="loginError"></div>
-        <button class="btn-auth" onclick="steamLogin()">Войти</button>
-        <button class="btn-ghost" style="margin-top:10px" onclick="closeLoginModal()">Закрыть</button>
-    </div>
-</div>
-
-<!-- Модалка пополнения -->
-<div class="modal-overlay hidden" id="addBalanceModal">
-    <div class="modal"><h3>💰 Пополнение</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
-            <button class="btn btn-primary" onclick="addBalanceDemo(1000)" style="background:var(--red)">+1 000💰</button>
-            <button class="btn btn-primary" onclick="addBalanceDemo(5000)" style="background:var(--red)">+5 000💰</button>
-            <button class="btn btn-primary" onclick="addBalanceDemo(10000)" style="background:var(--red)">+10 000💰</button>
-            <button class="btn btn-primary" onclick="addBalanceDemo(50000)" style="background:var(--red)">+50 000💰</button>
-        </div>
-        <button class="btn-ghost" style="margin-top:15px" onclick="closeAddBalance()">Закрыть</button>
-    </div>
-</div>
-
-<!-- Модалка вывода -->
-<div class="modal-overlay hidden" id="withdrawModal">
-    <div class="modal"><h3>📤 Вывод скина</h3>
-        <p style="font-size:13px;margin:12px 0" id="withdrawSkinInfo"></p>
-        <input class="auth-input" type="text" id="tradeUrlInput" placeholder="Steam Trade URL">
-        <p style="font-size:10px;color:var(--text2);margin-bottom:10px">Steam → Инвентарь → Предложения обмена → Кто может отправлять</p>
-        <div class="msg-error" id="withdrawError"></div><div class="msg-success" id="withdrawSuccess"></div>
-        <button class="btn btn-primary" onclick="confirmWithdraw()">Отправить в Steam</button>
-        <button class="btn-ghost" style="margin-top:10px" onclick="closeWithdrawModal()">Закрыть</button>
-    </div>
-</div>
+<div class="modal-overlay hidden" id="loginModal"><div class="modal"><h3>🚀 Вход</h3><input class="auth-input" id="steamIdInput" placeholder="Steam ID (цифры из ссылки)"><input class="auth-input" id="steamNameInput" placeholder="Никнейм"><div class="msg-error" id="loginError"></div><button class="btn-auth" onclick="steamLogin()">Войти</button><button class="btn-ghost" style="margin-top:10px" onclick="closeLoginModal()">Закрыть</button></div></div>
+<div class="modal-overlay hidden" id="addBalanceModal"><div class="modal"><h3>💰 Пополнение</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px"><button class="btn btn-primary" onclick="addBalanceDemo(1000)" style="background:var(--red)">+1 000💰</button><button class="btn btn-primary" onclick="addBalanceDemo(5000)" style="background:var(--red)">+5 000💰</button><button class="btn btn-primary" onclick="addBalanceDemo(10000)" style="background:var(--red)">+10 000💰</button><button class="btn btn-primary" onclick="addBalanceDemo(50000)" style="background:var(--red)">+50 000💰</button></div><button class="btn-ghost" style="margin-top:15px" onclick="closeAddBalance()">Закрыть</button></div></div>
+<div class="modal-overlay hidden" id="withdrawModal"><div class="modal"><h3>📤 Вывод скина</h3><p id="withdrawSkinInfo" style="font-size:13px;margin:12px 0"></p><input class="auth-input" id="withdrawTradeUrl" placeholder="Steam Trade URL"><p style="font-size:10px;color:var(--text2);margin-bottom:10px">Steam → Инвентарь → Предложения обмена</p><div class="msg-error" id="withdrawError"></div><div class="msg-success" id="withdrawSuccess"></div><button class="btn btn-primary" onclick="confirmWithdraw()" style="background:var(--purple)">Отправить</button><button class="btn-ghost" style="margin-top:10px" onclick="closeWithdrawModal()">Закрыть</button></div></div>
 
 <script>
 let userId=null,username=null,allCases=[],currentCase=null,currentInventory=[],stats={},isOpening=false,selectedUpgrade=[],withdrawIndex=null;
-const RARITY_NAMES={blue:"Промышленное",pink:"Засекреченное",red:"Тайное",gold:"Редкое"};
-const UPGRADE_REQUIRED=10;
+const RARITY_NAMES={blue:"Промышленное",pink:"Засекреченное",red:"Тайное",gold:"Редкое"},UPGRADE_REQUIRED=10;
 const ALL_SKINS=[{name:"P250 | Sand Dune",color:"#5b8def",image:"/static/skins/p250_sand_dune.png"},{name:"Glock-18 | Water Elemental",color:"#e040fb",image:"/static/skins/glock_water_elemental.png"},{name:"Desert Eagle | Blaze",color:"#e040fb",image:"/static/skins/deagle_blaze.png"},{name:"M4A1-S | Hyper Beast",color:"#e040fb",image:"/static/skins/m4a1s_hyper_beast.png"},{name:"USP-S | Kill Confirmed",color:"#ff3b5c",image:"/static/skins/usps_kill_confirmed.png"},{name:"AK-47 | Redline",color:"#ff3b5c",image:"/static/skins/ak47_redline.png"},{name:"AWP | Dragon Lore",color:"#ffd940",image:"/static/skins/awp_dragon_lore.png"},{name:"Karambit | Fade",color:"#ffd940",image:"/static/skins/karambit_fade.png"}];
 
-// ===== ВХОД =====
 function showLoginModal(){document.getElementById('loginModal').classList.remove('hidden')}
 function closeLoginModal(){document.getElementById('loginModal').classList.add('hidden')}
 async function steamLogin(){
-    let sid=document.getElementById('steamIdInput').value.trim();
-    let nm=document.getElementById('steamNameInput').value.trim()||'Player';
+    let sid=document.getElementById('steamIdInput').value.trim(),nm=document.getElementById('steamNameInput').value.trim()||'Player';
     if(!sid){document.getElementById('loginError').textContent='Введите Steam ID';return}
     if(sid.includes('steamcommunity.com')){const m=sid.match(/profiles\/(\d+)/);if(m)sid=m[1];else{const m2=sid.match(/id\/([^/]+)/);if(m2)sid=m2[1]}}
     try{const r=await fetch(`/api/steam_login_simple?steam_id=${encodeURIComponent(sid)}&username=${encodeURIComponent(nm)}`,{method:'POST'});const d=await r.json();
-    if(!r.ok){document.getElementById('loginError').textContent=d.detail||'Ошибка';return}
-    userId=d.user_id;username=d.username;stats=d.stats||{};
-    localStorage.setItem('cs_user_id',userId);localStorage.setItem('cs_username',username);
-    closeLoginModal();onLogin()}catch(e){document.getElementById('loginError').textContent='Ошибка соединения'}}
+    if(!r.ok){document.getElementById('loginError').textContent=d.detail;return}
+    userId=d.user_id;username=d.username;stats={};localStorage.setItem('cs_user_id',userId);localStorage.setItem('cs_username',username);
+    closeLoginModal();onLogin()}catch(e){document.getElementById('loginError').textContent='Ошибка'}}
 function logout(){localStorage.clear();userId=null;username=null;location.reload()}
-
-function onLogin(){
-    document.getElementById('headerLoginBtn').style.display='none';
-    document.getElementById('balanceDisplay').classList.remove('hidden');
-    document.getElementById('topbarUsername').textContent=username;
-    document.getElementById('logoutBtn').style.display='inline-block';
-    loadUserData();loadCases();navigate('home');
-}
-
-// ===== НАВИГАЦИЯ =====
-function navigate(page){
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-    const el=document.getElementById('page-'+page);if(el)el.classList.add('active');
-    const btn=document.querySelector(`.nav-btn[data-page="${page}"]`);if(btn)btn.classList.add('active');
-    if(page==='home')renderCases();
-    else if(page==='inventory')renderInventoryPage();
-    else if(page==='upgrade'){cancelUpgradeSelection();renderUpgradePage()}
-    else if(page==='profile')renderProfilePage();
-    if(page!=='case')currentCase=null;
-}
-
+function onLogin(){document.getElementById('headerLoginBtn').style.display='none';document.getElementById('balanceDisplay').classList.remove('hidden');document.getElementById('topbarUsername').textContent=username;document.getElementById('logoutBtn').style.display='inline-block';loadUserData();loadCases();navigate('home')}
+function navigate(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const el=document.getElementById('page-'+page);if(el)el.classList.add('active');const btn=document.querySelector(`.nav-btn[data-page="${page}"]`);if(btn)btn.classList.add('active');if(page==='home')renderCases();else if(page==='inventory')renderInventoryPage();else if(page==='upgrade'){cancelUpgradeSelection();renderUpgradePage()}else if(page==='profile')renderProfilePage();if(page!=='case')currentCase=null}
 async function loadUserData(){if(!userId)return;try{const r=await fetch(`/api/info?user_id=${userId}`);const d=await r.json();document.getElementById('balance').textContent=d.balance;stats=d.stats||{};currentInventory=d.inventory||[]}catch(e){}}
 async function loadCases(){try{const r=await fetch('/api/cases');const d=await r.json();allCases=d.cases}catch(e){}}
 function renderCases(){document.getElementById('casesGrid').innerHTML=allCases.map(c=>`<div class="case-card" onclick="openCasePage('${c.id}')"><img src="${c.image}"><div class="case-type">${c.type==='sticker'?'Стикеры':c.type==='agent'?'Агенты':'Оружие'}</div><div class="case-name">${c.name}</div><div class="case-price">${c.price} 💰</div></div>`).join('')}
-
-// ===== СТРАНИЦА КЕЙСА =====
 function openCasePage(cid){currentCase=allCases.find(c=>c.id===cid);if(!currentCase)return;navigate('case');document.getElementById('caseTitle').textContent=currentCase.name;document.getElementById('btnPrice').textContent=currentCase.price;renderDropTable();fillStrip()}
 async function renderDropTable(){try{const r=await fetch(`/api/case_items?case_id=${currentCase.id}`);const items=await r.json();document.getElementById('dropTable').innerHTML=`<h3>📋 Дроп</h3>${items.map(i=>`<div class="drop-row"><div class="drop-rarity-dot" style="background:${i.color}"></div><div class="drop-name" style="color:${i.color}">${i.name}</div><div class="drop-chance">${i.chance}%</div><div class="drop-price">${i.price}💰</div></div>`).join('')}`}catch(e){}}
 function fillStrip(){const s=document.getElementById('skinsStrip');s.innerHTML='';s.style.transition='none';s.style.transform='translateX(0)';const sh=[...ALL_SKINS].sort(()=>Math.random()-0.5);for(let i=0;i<50;i++){const sk=sh[i%sh.length];const d=document.createElement('div');d.className='skin-item';d.innerHTML=`<div class="rarity-stripe" style="background:${sk.color};"></div><img src="${sk.image}"><div class="skin-name">${sk.name}</div>`;s.appendChild(d)}}
-function startAnimation(w){
-    const s=document.getElementById('skinsStrip');s.innerHTML='';s.style.transition='none';s.style.transform='translateX(0)';
-    const sh=[...ALL_SKINS].sort(()=>Math.random()-0.5);
-    for(let i=0;i<30;i++){const sk=sh[i%sh.length];const d=document.createElement('div');d.className='skin-item';d.innerHTML=`<div class="rarity-stripe" style="background:${sk.color};"></div><img src="${sk.image}"><div class="skin-name">${sk.name}</div>`;s.appendChild(d)}
-    const wd=document.createElement('div');wd.className='skin-item';wd.id='winnerSkin';wd.innerHTML=`<div class="rarity-stripe" style="background:${w.color};"></div><img src="${w.image}"><div class="skin-name">${w.name}</div>`;s.appendChild(wd);
-    for(let i=0;i<30;i++){const sk=sh[(30+i)%sh.length];const d=document.createElement('div');d.className='skin-item';d.innerHTML=`<div class="rarity-stripe" style="background:${sk.color};"></div><img src="${sk.image}"><div class="skin-name">${sk.name}</div>`;s.appendChild(d)}
-    s.offsetHeight;const iw=244,tw=document.querySelector('.roll-window').clientWidth,tp=-(30*iw)+(tw/2)-(iw/2);
-    s.style.transition='transform 3.5s cubic-bezier(0.05,0.65,0.1,1)';s.style.transform=`translateX(${tp}px)`;
-    // Подсветка только после остановки
-    setTimeout(()=>{
-        const ws=document.getElementById('winnerSkin');
-        if(ws){ws.style.transition='all 0.5s';ws.style.border=`3px solid ${w.color}`;ws.style.boxShadow=`0 0 35px ${w.color}88`;ws.style.transform='scale(1.1)';ws.querySelector('.skin-name').innerHTML=`🎉 ${w.name}`;ws.querySelector('.skin-name').style.cssText=`color:${w.color};font-size:13px;font-weight:800`}
-    },3500);
-}
-
-async function openSelectedCase(){
-    if(isOpening||!currentCase||!userId)return;isOpening=true;const b=document.getElementById('openBtn');b.disabled=true;fillStrip();
-    setTimeout(async()=>{try{const r=await fetch(`/api/open?user_id=${userId}&case_id=${currentCase.id}`,{method:'POST'});const d=await r.json();
-    if(!r.ok){showMsg('error',d.detail);isOpening=false;b.disabled=false;return}
-    startAnimation(d.result);stats=d.stats||stats;
-    setTimeout(async()=>{document.getElementById('balance').textContent=d.balance;await loadUserData();isOpening=false;b.disabled=false;showMsg('success',`Выпал: ${d.result.name}!`)},4000)}catch(e){isOpening=false;b.disabled=false}},200)}
+function startAnimation(w){const s=document.getElementById('skinsStrip');s.innerHTML='';s.style.transition='none';s.style.transform='translateX(0)';const sh=[...ALL_SKINS].sort(()=>Math.random()-0.5);for(let i=0;i<30;i++){const sk=sh[i%sh.length];const d=document.createElement('div');d.className='skin-item';d.innerHTML=`<div class="rarity-stripe" style="background:${sk.color};"></div><img src="${sk.image}"><div class="skin-name">${sk.name}</div>`;s.appendChild(d)}const wd=document.createElement('div');wd.className='skin-item';wd.id='winnerSkin';wd.innerHTML=`<div class="rarity-stripe" style="background:${w.color};"></div><img src="${w.image}"><div class="skin-name">${w.name}</div>`;s.appendChild(wd);for(let i=0;i<30;i++){const sk=sh[(30+i)%sh.length];const d=document.createElement('div');d.className='skin-item';d.innerHTML=`<div class="rarity-stripe" style="background:${sk.color};"></div><img src="${sk.image}"><div class="skin-name">${sk.name}</div>`;s.appendChild(d)}s.offsetHeight;const iw=244,tw=document.querySelector('.roll-window').clientWidth,tp=-(30*iw)+(tw/2)-(iw/2);s.style.transition='transform 3.5s cubic-bezier(0.05,0.65,0.1,1)';s.style.transform=`translateX(${tp}px)`;setTimeout(()=>{const ws=document.getElementById('winnerSkin');if(ws){ws.style.transition='all 0.5s';ws.style.border=`3px solid ${w.color}`;ws.style.boxShadow=`0 0 35px ${w.color}88`;ws.style.transform='scale(1.1)';ws.querySelector('.skin-name').innerHTML=`🎉 ${w.name}`;ws.querySelector('.skin-name').style.cssText=`color:${w.color};font-size:13px;font-weight:800`}},3500)}
+async function openSelectedCase(){if(isOpening||!currentCase||!userId)return;isOpening=true;const b=document.getElementById('openBtn');b.disabled=true;fillStrip();setTimeout(async()=>{try{const r=await fetch(`/api/open?user_id=${userId}&case_id=${currentCase.id}`,{method:'POST'});const d=await r.json();if(!r.ok){showMsg('error',d.detail);isOpening=false;b.disabled=false;return}startAnimation(d.result);stats=d.stats||stats;setTimeout(async()=>{document.getElementById('balance').textContent=d.balance;await loadUserData();isOpening=false;b.disabled=false;showMsg('success',`Выпал: ${d.result.name}!`)},4000)}catch(e){isOpening=false;b.disabled=false}},200)}
 function showMsg(t,m){const e=document.getElementById(t+'Message');if(e){e.textContent=m;setTimeout(()=>e.textContent='',3000)}}
-
-// ===== ЛЕНТА ДРОПОВ (слева) =====
-setInterval(async()=>{
-    try{const r=await fetch('/api/drops');const d=await r.json();
-    if(d.drops){renderSidebarDrops(d.drops.slice(0,20))}}catch(e){}
-},5000);
-
-function renderSidebarDrops(dropsList){
-    const sb=document.getElementById('dropsSidebar');
-    sb.innerHTML=dropsList.map(drop=>`
-        <div class="drop-item-side" onclick="openPublicProfile('${drop.user_id}')">
-            <img src="${drop.skin_image}" onerror="this.style.display='none'">
-            <div class="ds-name" style="color:${drop.color}">${drop.skin_name}</div>
-            <div class="ds-user">${drop.username} · ${new Date(drop.time).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</div>
-        </div>
-    `).join('');
-}
-renderSidebarDrops([]);
-
-// ===== ИНВЕНТАРЬ =====
-function renderInventoryPage(){
-    const g=document.getElementById('inventoryGrid');if(!currentInventory.length){g.innerHTML='<div style="color:var(--text2);text-align:center;grid-column:1/-1;padding:20px">Пусто</div>';return}
-    g.innerHTML=currentInventory.map((item,i)=>`<div class="inv-item" style="border-color:${item.color}44"><img src="${item.image}"><div class="inv-name">${item.name}</div><div class="inv-rarity" style="color:${item.color}">${RARITY_NAMES[item.rarity]}</div><div class="inv-price">${item.price||0} 💰</div><button class="btn-sell" onclick="sellItem(${i})">Продать</button><button class="btn-withdraw" onclick="openWithdrawModal(${i})">Вывести</button></div>`).join('')}
-async function sellItem(i){try{const r=await fetch(`/api/sell?user_id=${userId}&index=${i}`,{method:'POST'});const d=await r.json();if(!r.ok){alert(d.detail);return}document.getElementById('balance').textContent=d.balance;currentInventory=d.inventory;stats=d.stats||stats;renderInventoryPage()}catch(e){}}
-
-// ===== ВЫВОД =====
-function openWithdrawModal(i){withdrawIndex=i;const item=currentInventory[i];document.getElementById('withdrawSkinInfo').innerHTML=`<span style="color:${item.color}">${item.name}</span> (${item.price||0}💰)`;document.getElementById('tradeUrlInput').value='';document.getElementById('withdrawError').textContent='';document.getElementById('withdrawSuccess').textContent='';document.getElementById('withdrawModal').classList.remove('hidden')}
-function closeWithdrawModal(){document.getElementById('withdrawModal').classList.add('hidden');withdrawIndex=null}
-async function confirmWithdraw(){
-    const url=document.getElementById('tradeUrlInput').value.trim();
-    if(!url){document.getElementById('withdrawError').textContent='Введите Trade URL';return}
-    try{const r=await fetch(`/api/withdraw?user_id=${userId}&skin_index=${withdrawIndex}`,{method:'POST'});const d=await r.json();
-    if(!r.ok){document.getElementById('withdrawError').textContent=d.detail;return}
-    document.getElementById('withdrawSuccess').textContent='✅ Заявка создана!';
-    setTimeout(()=>{closeWithdrawModal();loadUserData();navigate('inventory')},1500)}catch(e){}
-}
-
-// ===== КОНТРАКТЫ =====
+setInterval(async()=>{try{const r=await fetch('/api/drops');const d=await r.json();if(d.drops){document.getElementById('dropsSidebar').innerHTML=d.drops.slice(0,25).map(dr=>`<div class="drop-item-side" onclick="openPublicProfile('${dr.user_id}')"><img src="${dr.skin_image}" onerror="this.style.display='none'"><div class="ds-name" style="color:${dr.color}">${dr.skin_name}</div><div class="ds-user">${dr.username} · ${new Date(dr.time).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</div></div>`).join('')}}catch(e){}},5000);
+function renderInventoryPage(){const g=document.getElementById('inventoryGrid');if(!currentInventory.length){g.innerHTML='<div style="color:var(--text2);text-align:center;grid-column:1/-1;padding:20px">Пусто</div>';return}g.innerHTML=currentInventory.map((item,i)=>`<div class="inv-item" style="border-color:${item.color}44"><img src="${item.image}"><div class="inv-name">${item.name}</div><div class="inv-rarity" style="color:${item.color}">${RARITY_NAMES[item.rarity]}</div><div class="inv-price">${item.price||0} 💰</div><button class="btn-sell" onclick="sellItem(${i})">Продать</button><button class="btn-withdraw" onclick="openWithdrawModal(${i})">Вывести</button></div>`).join('')}
+async function sellItem(i){try{const r=await fetch(`/api/sell?user_id=${userId}&index=${i}`,{method:'POST'});const d=await r.json();if(!r.ok){alert(d.detail);return}document.getElementById('balance').textContent=d.balance;currentInventory=d.inventory;renderInventoryPage()}catch(e){}}
+function openWithdrawModal(i){withdrawIndex=i;const item=currentInventory[i];document.getElementById('withdrawSkinInfo').innerHTML=`<span style="color:${item.color}">${item.name}</span> (${item.price||0}💰)`;document.getElementById('withdrawError').textContent='';document.getElementById('withdrawSuccess').textContent='';document.getElementById('withdrawModal').classList.remove('hidden')}
+function closeWithdrawModal(){document.getElementById('withdrawModal').classList.add('hidden')}
+async function confirmWithdraw(){try{const r=await fetch(`/api/withdraw?user_id=${userId}&skin_index=${withdrawIndex}`,{method:'POST'});const d=await r.json();if(!r.ok){document.getElementById('withdrawError').textContent=d.detail;return}document.getElementById('withdrawSuccess').textContent='✅ Заявка создана!';setTimeout(()=>{closeWithdrawModal();loadUserData();navigate('inventory')},1500)}catch(e){}}
 function renderUpgradePage(){const g=document.getElementById('upgradeInvGrid');if(!currentInventory.length){g.innerHTML='<div style="color:var(--text2);text-align:center;grid-column:1/-1;padding:20px">Пусто</div>';return}g.innerHTML=currentInventory.map((item,i)=>`<div class="inv-item${selectedUpgrade.includes(i)?' selected-upgrade':''}" onclick="toggleUpgradeItem(${i})" style="cursor:pointer"><div class="inv-select-hint">✓</div><img src="${item.image}"><div class="inv-name">${item.name}</div><div class="inv-rarity" style="color:${item.color}">${RARITY_NAMES[item.rarity]}</div></div>`).join('');updateUpgradeInfo()}
 function toggleUpgradeItem(i){if(selectedUpgrade.includes(i)){selectedUpgrade=selectedUpgrade.filter(x=>x!==i)}else{if(selectedUpgrade.length>=UPGRADE_REQUIRED)return;selectedUpgrade.push(i)}renderUpgradePage()}
 function updateUpgradeInfo(){document.getElementById('upgradeCount').textContent=selectedUpgrade.length;document.getElementById('confirmUpgradeBtn').disabled=selectedUpgrade.length!==UPGRADE_REQUIRED}
 function cancelUpgradeSelection(){selectedUpgrade=[];renderUpgradePage()}
 async function confirmUpgrade(){try{const r=await fetch(`/api/upgrade?user_id=${userId}`,{method:'POST'});const d=await r.json();if(!r.ok){alert(d.detail);return}document.getElementById('balance').textContent=d.balance;currentInventory=d.inventory;cancelUpgradeSelection();renderUpgradePage()}catch(e){}}
-
-// ===== ПРОФИЛЬ =====
 async function openPublicProfile(uid){try{const r=await fetch(`/api/user_profile?user_id=${uid}`);const d=await r.json();document.getElementById('publicUsername').textContent=d.username;document.getElementById('publicStatsGrid').innerHTML=`<div class="stat-card"><div class="stat-value">${d.stats?.total_opened||0}</div><div class="stat-label">Открыто</div></div><div class="stat-card"><div class="stat-value">${(d.stats?.total_spent||0).toLocaleString()}💰</div><div class="stat-label">Потрачено</div></div><div class="stat-card"><div class="stat-value">${d.inventory_count||0}</div><div class="stat-label">Скинов</div></div>`;navigate('public-profile')}catch(e){}}
 function renderProfilePage(){document.getElementById('profileUsername').textContent=username;document.getElementById('statsGrid').innerHTML=`<div class="stat-card"><div class="stat-value">${stats.total_opened||0}</div><div class="stat-label">Открыто</div></div><div class="stat-card"><div class="stat-value">${(stats.total_spent||0).toLocaleString()}💰</div><div class="stat-label">Потрачено</div></div><div class="stat-card"><div class="stat-value">${(stats.total_earned||0).toLocaleString()}💰</div><div class="stat-label">Заработано</div></div>`}
-
-// ===== ПОПОЛНЕНИЕ =====
 function showAddBalance(){document.getElementById('addBalanceModal').classList.remove('hidden')}
 function closeAddBalance(){document.getElementById('addBalanceModal').classList.add('hidden')}
 async function addBalanceDemo(a){try{const r=await fetch(`/api/add_balance?user_id=${userId}&amount=${a}`,{method:'POST'});const d=await r.json();document.getElementById('balance').textContent=d.balance;closeAddBalance()}catch(e){}}
-
-// ===== ИНИЦИАЛИЗАЦИЯ =====
-(function init(){
-    loadCases();
-    const si=localStorage.getItem('cs_user_id'),sn=localStorage.getItem('cs_username');
-    if(si&&sn){userId=si;username=sn;onLogin()}
-})();
+loadCases();
+const si=localStorage.getItem('cs_user_id'),sn=localStorage.getItem('cs_username');
+if(si&&sn){userId=si;username=sn;onLogin()}
 </script>
 </body>
 </html>
