@@ -4,14 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
 from case_engine import open_case
 from models import CASES, SKINS, UPGRADE_COST, UPGRADE_REQUIRED
-import hashlib
-import uuid
-import json
-import os
-import random
+import uuid, json, os, random
 from datetime import datetime
 from urllib.parse import urlencode
-import urllib.request
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -32,7 +27,7 @@ def load_users():
 
 def save_users(u):
     with open(USERS_FILE, "w") as f:
-        f.write(json.dumps(u, ensure_ascii=False, indent=2))
+        json.dump(u, f, ensure_ascii=False, indent=2)
 
 def load_drops():
     if os.path.exists(DROPS_FILE):
@@ -45,7 +40,7 @@ def load_drops():
 
 def save_drops(d):
     with open(DROPS_FILE, "w") as f:
-        f.write(json.dumps(d[-100:], ensure_ascii=False, indent=2))
+        json.dump(d[-100:], f, ensure_ascii=False, indent=2)
 
 users = load_users()
 drops = load_drops()
@@ -57,9 +52,7 @@ def init_stats():
 
 @app.get("/api/steam/login")
 def steam_login():
-    """Перенаправляет на Steam для входа"""
     callback_url = f"{SITE_URL}/api/steam/callback"
-    
     params = {
         "openid.ns": "http://specs.openid.net/auth/2.0",
         "openid.mode": "checkid_setup",
@@ -68,36 +61,18 @@ def steam_login():
         "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
         "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
     }
-    
-    login_url = f"https://steamcommunity.com/openid/login?{urlencode(params)}"
-    return RedirectResponse(url=login_url)
+    return RedirectResponse(url=f"https://steamcommunity.com/openid/login?{urlencode(params)}")
 
 @app.get("/api/steam/callback")
 async def steam_callback(request: Request):
-    """Callback после входа через Steam"""
-    
-    # Получаем ВСЕ параметры из URL
     params = dict(request.query_params)
-    print(f"Callback params: {params}")
-    
-    # Проверяем что Steam вернул claimed_id
     claimed_id = params.get("openid.claimed_id", "")
     
     if not claimed_id:
-        return HTMLResponse(f"""
-        <html><body style="background:#1a1a2e;color:#fff;font-family:Arial;padding:40px">
-        <h2>Ошибка входа</h2>
-        <p>Steam не вернул ID. Параметры:</p>
-        <pre>{json.dumps(params, indent=2)}</pre>
-        <a href="/" style="color:#ffd940">На главную</a>
-        </body></html>
-        """)
+        return HTMLResponse(f"""<html><body style="background:#0a0a0f;color:#fff;font-family:Arial;padding:40px"><h2>Ошибка</h2><pre>{json.dumps(params,indent=2)}</pre><a href="/" style="color:#ffd940">На главную</a></body></html>""")
     
-    # Извлекаем Steam ID
     steam_id = claimed_id.split("/")[-1]
-    print(f"Steam ID: {steam_id}")
     
-    # Ищем пользователя
     uid = None
     for u_id, data in users.items():
         if data.get("steam_id") == steam_id:
@@ -105,43 +80,16 @@ async def steam_callback(request: Request):
             break
     
     username = f"Player_{steam_id[-4:]}"
-    avatar = ""
-    
-    # Пробуем получить данные из Steam API
-    try:
-        api_key = os.getenv("STEAM_API_KEY", "")
-        if api_key:
-            api_url = f"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={api_key}&steamids={steam_id}"
-            req = urllib.request.Request(api_url)
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                data = json.loads(resp.read())
-                players = data.get("response", {}).get("players", [])
-                if players:
-                    username = players[0].get("personaname", username)
-                    avatar = players[0].get("avatarfull", "")
-    except Exception as e:
-        print(f"Steam API error: {e}")
     
     if not uid:
         uid = str(uuid.uuid4())[:8]
-        users[uid] = {
-            "steam_id": steam_id,
-            "username": username,
-            "avatar": avatar,
-            "balance": 1000,
-            "inventory": [],
-            "stats": init_stats(),
-            "trade_url": ""
-        }
+        users[uid] = {"steam_id": steam_id, "username": username, "avatar": "", "balance": 1000, "inventory": [], "stats": init_stats(), "trade_url": ""}
     else:
-        users[uid]["username"] = username
-        if avatar:
-            users[uid]["avatar"] = avatar
+        username = users[uid].get("username", username)
     
     save_users(users)
     
-    # Перенаправляем на главную с параметрами
-    return RedirectResponse(url=f"/?user_id={uid}&username={username}&avatar={avatar}")
+    return HTMLResponse(f"""<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="background:#0a0a0f;color:#fff;font-family:Arial;text-align:center;padding-top:100px"><h2>Вход выполнен!</h2><script>localStorage.setItem('cs_user_id','{uid}');localStorage.setItem('cs_username','{username}');window.location.href='/';</script></body></html>""")
 
 # ========== API ==========
 
@@ -165,30 +113,27 @@ def info(user_id: str):
     if user_id not in users: raise HTTPException(404, "Пользователь не найден")
     u = users[user_id]
     if "stats" not in u: u["stats"] = init_stats()
-    return {"username": u["username"], "avatar": u.get("avatar",""), "balance": u["balance"], "inventory": u["inventory"], "stats": u["stats"]}
+    return {"username": u["username"], "balance": u["balance"], "inventory": u["inventory"], "stats": u["stats"]}
 
 @app.get("/api/user_profile")
 def user_profile(user_id: str):
-    if user_id not in users: raise HTTPException(404, "Пользователь не найден")
+    if user_id not in users: raise HTTPException(404)
     u = users[user_id]
-    if "stats" not in u: u["stats"] = init_stats()
-    return {"username": u["username"], "avatar": u.get("avatar",""), "stats": u["stats"], "inventory_count": len(u["inventory"])}
+    return {"username": u["username"], "stats": u.get("stats",init_stats()), "inventory_count": len(u.get("inventory",[]))}
 
 @app.post("/api/open")
 def open_case_endpoint(user_id: str, case_id: str):
-    if user_id not in users: raise HTTPException(404, "Пользователь не найден")
-    if case_id not in CASES: raise HTTPException(400, "Кейс не найден")
+    if user_id not in users: raise HTTPException(404)
+    if case_id not in CASES: raise HTTPException(400)
     u = users[user_id]
     case = CASES[case_id]
-    if u["balance"] < case["price"]: raise HTTPException(400, f"Недостаточно монет! Нужно {case['price']}💰")
+    if u["balance"] < case["price"]: raise HTTPException(400, f"Нужно {case['price']}💰")
     if "stats" not in u: u["stats"] = init_stats()
     u["balance"] -= case["price"]
     u["stats"]["total_opened"] += 1
     u["stats"]["total_spent"] += case["price"]
     result = open_case(case)
     u["inventory"].append(result)
-    if u["stats"]["best_drop"] is None or result["price"] > u["stats"]["best_drop"]["price"]:
-        u["stats"]["best_drop"] = {"name": result["name"], "price": result["price"], "rarity": result["rarity"], "color": result["color"], "image": result["image"]}
     save_users(users)
     drops.append({"username": u["username"], "user_id": user_id, "skin_name": result["name"], "skin_image": result["image"], "rarity": result["rarity"], "color": result["color"], "price": result["price"], "case_name": case["name"], "time": datetime.now().isoformat()})
     save_drops(drops)
@@ -202,11 +147,9 @@ def get_drops():
 def sell(user_id: str, index: int):
     if user_id not in users: raise HTTPException(404)
     u = users[user_id]
-    if index < 0 or index >= len(u["inventory"]): raise HTTPException(400, "Скин не найден")
+    if index < 0 or index >= len(u["inventory"]): raise HTTPException(400)
     sold = u["inventory"].pop(index)
     u["balance"] += sold.get("price", 0)
-    if "stats" not in u: u["stats"] = init_stats()
-    u["stats"]["total_earned"] += sold.get("price", 0)
     save_users(users)
     return {"sold": sold, "balance": u["balance"], "inventory": u["inventory"]}
 
@@ -214,7 +157,7 @@ def sell(user_id: str, index: int):
 def upgrade(user_id: str):
     if user_id not in users: raise HTTPException(404)
     u = users[user_id]
-    if u["balance"] < UPGRADE_COST: raise HTTPException(400, f"Недостаточно монет! Нужно {UPGRADE_COST}💰")
+    if u["balance"] < UPGRADE_COST: raise HTTPException(400)
     by_r = {"blue":[],"pink":[],"red":[],"gold":[]}
     for i, item in enumerate(u["inventory"]):
         r = item["rarity"]
@@ -245,7 +188,7 @@ def add_balance(user_id: str, amount: int = 1000):
 def withdraw(user_id: str, skin_index: int):
     if user_id not in users: raise HTTPException(404)
     u = users[user_id]
-    if skin_index < 0 or skin_index >= len(u["inventory"]): raise HTTPException(400, "Скин не найден")
+    if skin_index < 0 or skin_index >= len(u["inventory"]): raise HTTPException(400)
     skin = u["inventory"].pop(skin_index)
     save_users(users)
     return {"success": True, "message": f"Заявка на вывод {skin['name']} создана"}
