@@ -10,20 +10,12 @@ import json
 import os
 import random
 from datetime import datetime
-import requests
-from urllib.parse import urlencode
 
 app = FastAPI()
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Steam OpenID конфигурация
-STEAM_OPENID_URL = "https://steamcommunity.com/openid"
-REALM = os.getenv("SITE_URL", "https://cs-case.onrender.com")
-RETURN_URL = f"{REALM}/api/steam/callback"
-
-# Простая файловая БД (замени на SQLite при необходимости)
 USERS_FILE = "users.json"
 DROPS_FILE = "drops.json"
 
@@ -59,97 +51,49 @@ drops = load_drops()
 def init_stats():
     return {"total_opened": 0, "total_spent": 0, "total_earned": 0, "most_expensive": None, "best_drop": None}
 
-def get_user_by_steam_id(steam_id: str):
+# ========== ПРОСТОЙ ВХОД ==========
+
+@app.post("/api/steam_login_simple")
+def steam_login_simple(steam_id: str = Query(...), username: str = Query("Player")):
+    """Вход по Steam ID (без OpenID)"""
+    if not steam_id or len(steam_id) < 5:
+        raise HTTPException(400, "Введите корректный Steam ID")
+    
+    # Ищем пользователя
     for uid, data in users.items():
         if data.get("steam_id") == steam_id:
-            return uid, data
-    return None, None
-
-# ========== STEAM LOGIN ==========
-
-@app.get("/api/steam/login")
-def steam_login():
-    """Перенаправляет на страницу входа Steam"""
-    params = {
-        "openid.ns": "http://specs.openid.net/auth/2.0",
-        "openid.mode": "checkid_setup",
-        "openid.return_to": RETURN_URL,
-        "openid.realm": REALM,
-        "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
-        "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
+            token = hashlib.sha256(f"{uid}{steam_id}".encode()).hexdigest()[:16]
+            data["token"] = token
+            save_users(users)
+            return {"user_id": uid, "token": token, "username": data["username"], "balance": data["balance"]}
+    
+    # Создаём нового
+    uid = str(uuid.uuid4())[:8]
+    users[uid] = {
+        "steam_id": steam_id,
+        "username": username,
+        "avatar": "",
+        "balance": 1000,
+        "inventory": [],
+        "stats": init_stats(),
+        "trade_url": "",
+        "token": ""
     }
-    return RedirectResponse(f"{STEAM_OPENID_URL}/login?{urlencode(params)}")
-
-@app.get("/api/steam/callback")
-def steam_callback(openid_claimed_id: str = Query(None), openid_identity: str = Query(None)):
-    """Callback после входа через Steam"""
-    if not openid_claimed_id:
-        raise HTTPException(400, "Ошибка входа через Steam")
-    
-    # Извлекаем Steam ID из URL
-    steam_id = openid_claimed_id.split("/")[-1]
-    
-    # Проверяем существует ли пользователь
-    uid, user_data = get_user_by_steam_id(steam_id)
-    
-    if not uid:
-        # Создаём нового пользователя
-        uid = str(uuid.uuid4())[:8]
-        
-        # Получаем никнейм из Steam API
-        username = f"Player_{steam_id[-4:]}"
-        avatar = ""
-        try:
-            resp = requests.get(
-                f"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={os.getenv('STEAM_API_KEY', '')}&steamids={steam_id}"
-            )
-            if resp.ok:
-                data = resp.json()
-                players = data.get("response", {}).get("players", [])
-                if players:
-                    username = players[0].get("personaname", username)
-                    avatar = players[0].get("avatarfull", "")
-        except:
-            pass
-        
-        users[uid] = {
-            "steam_id": steam_id,
-            "username": username,
-            "avatar": avatar,
-            "balance": 1000,
-            "inventory": [],
-            "stats": init_stats(),
-            "trade_url": ""
-        }
-        save_users(users)
-    
-    # Перенаправляем на главную с токеном
-    user_data = users[uid]
-    token = hashlib.sha256(f"{uid}{steam_id}".encode()).hexdigest()[:16]
-    user_data["token"] = token
     save_users(users)
-    
-    return RedirectResponse(f"/?user_id={uid}&token={token}")
+    token = hashlib.sha256(f"{uid}{steam_id}".encode()).hexdigest()[:16]
+    users[uid]["token"] = token
+    save_users(users)
+    return {"user_id": uid, "token": token, "username": username, "balance": 1000}
 
 @app.get("/api/auth_by_token")
 def auth_by_token(user_id: str, token: str):
-    """Авторизация по токену"""
-    if user_id not in users:
-        raise HTTPException(404, "Пользователь не найден")
+    if user_id not in users: raise HTTPException(404, "Пользователь не найден")
     u = users[user_id]
-    if u.get("token") != token:
-        raise HTTPException(400, "Неверный токен")
+    if u.get("token") != token: raise HTTPException(400, "Неверный токен")
     if "stats" not in u: u["stats"] = init_stats()
-    return {
-        "user_id": user_id,
-        "username": u["username"],
-        "avatar": u.get("avatar", ""),
-        "steam_id": u.get("steam_id", ""),
-        "balance": u["balance"],
-        "stats": u["stats"]
-    }
+    return {"user_id": user_id, "username": u["username"], "avatar": u.get("avatar",""), "steam_id": u.get("steam_id",""), "balance": u["balance"], "stats": u["stats"]}
 
-# ========== ОСТАЛЬНОЕ API ==========
+# ========== API ==========
 
 @app.get("/api/cases")
 def get_cases():
@@ -200,19 +144,7 @@ def open_case_endpoint(user_id: str, case_id: str):
         mi, mp = max(prices, key=lambda x: x[1])
         u["stats"]["most_expensive"] = {"name": u["inventory"][mi]["name"], "price": mp, "rarity": u["inventory"][mi]["rarity"], "color": u["inventory"][mi]["color"], "image": u["inventory"][mi]["image"]}
     save_users(users)
-    
-    drops.append({
-        "username": u["username"],
-        "avatar": u.get("avatar",""),
-        "user_id": user_id,
-        "skin_name": result["name"],
-        "skin_image": result["image"],
-        "rarity": result["rarity"],
-        "color": result["color"],
-        "price": result["price"],
-        "case_name": case["name"],
-        "time": datetime.now().isoformat()
-    })
+    drops.append({"username": u["username"], "avatar": u.get("avatar",""), "user_id": user_id, "skin_name": result["name"], "skin_image": result["image"], "rarity": result["rarity"], "color": result["color"], "price": result["price"], "case_name": case["name"], "time": datetime.now().isoformat()})
     save_drops(drops)
     return {"result": result, "balance": u["balance"], "stats": u["stats"]}
 
@@ -238,13 +170,13 @@ def upgrade(user_id: str):
     u = users[user_id]
     if u["balance"] < UPGRADE_COST: raise HTTPException(400, f"Недостаточно монет! Нужно {UPGRADE_COST}💰")
     by_r = {"blue":[],"pink":[],"red":[],"gold":[]}
-    for i, item in enumerate(u["inventory"]):
+    for i, item in enumerate(u["inventory"]): 
         r = item["rarity"]
         if r in by_r: by_r[r].append(i)
     target = None
     for r in ["blue","pink","red"]:
         if len(by_r[r]) >= UPGRADE_REQUIRED: target = r; break
-    if not target: raise HTTPException(400, f"Нужно {UPGRADE_REQUIRED} скинов одной редкости")
+    if not target: raise HTTPException(400, f"Нужно {UPGRADE_REQUIRED} скинов")
     indices = sorted(by_r[target][-UPGRADE_REQUIRED:], reverse=True)
     for idx in indices: u["inventory"].pop(idx)
     next_r = {"blue":"pink","pink":"red","red":"gold"}[target]
