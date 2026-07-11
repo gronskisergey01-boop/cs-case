@@ -330,12 +330,24 @@ function startAnimation(winner){
     const s=document.getElementById('skinsStrip');s.innerHTML='';s.style.transition='none';s.style.transform='translateX(0)';
     const sh=[...ALL_SKINS].sort(()=>Math.random()-0.5);
     for(let i=0;i<30;i++){const sk=sh[i%sh.length];const d=document.createElement('div');d.className='skin-item';d.innerHTML=`<div class="rarity-stripe" style="background:${sk.color};"></div><img src="${sk.image}"><div class="skin-name">${sk.name}</div>`;s.appendChild(d)}
-    const wd=document.createElement('div');wd.className='skin-item';wd.style.border=`3px solid ${winner.color}`;wd.style.boxShadow=`0 0 35px ${winner.color}88`;wd.style.transform='scale(1.1)';wd.style.zIndex='5';
-    wd.innerHTML=`<div class="rarity-stripe" style="background:${winner.color};height:5px;"></div><img src="${winner.image}"><div class="skin-name" style="color:${winner.color};font-size:13px;font-weight:800;">🎉 ${winner.name}</div>`;s.appendChild(wd);
+    const wd=document.createElement('div');wd.className='skin-item';wd.id='winnerSkin';
+    wd.innerHTML=`<div class="rarity-stripe" style="background:${winner.color};"></div><img src="${winner.image}"><div class="skin-name">${winner.name}</div>`;s.appendChild(wd);
     for(let i=0;i<30;i++){const sk=sh[(30+i)%sh.length];const d=document.createElement('div');d.className='skin-item';d.innerHTML=`<div class="rarity-stripe" style="background:${sk.color};"></div><img src="${sk.image}"><div class="skin-name">${sk.name}</div>`;s.appendChild(d)}
     s.offsetHeight;
     const iw=244,tw=document.querySelector('.roll-window').clientWidth,tp=-(30*iw)+(tw/2)-(iw/2);
-    s.style.transition=`transform ${Math.min(4.5,2+30*0.06)}s cubic-bezier(0.05,0.65,0.1,1)`;s.style.transform=`translateX(${tp}px)`
+    s.style.transition=`transform ${Math.min(4.5,2+30*0.06)}s cubic-bezier(0.05,0.65,0.1,1)`;s.style.transform=`translateX(${tp}px)`;
+    setTimeout(()=>{
+        const ws=document.getElementById('winnerSkin');
+        if(ws){
+            ws.style.transition='all 0.5s';
+            ws.style.border=`3px solid ${winner.color}`;
+            ws.style.boxShadow=`0 0 35px ${winner.color}88`;
+            ws.style.transform='scale(1.1)';
+            ws.style.zIndex='5';
+            ws.querySelector('.skin-name').innerHTML=`🎉 ${winner.name}`;
+            ws.querySelector('.skin-name').style.cssText=`color:${winner.color};font-size:13px;font-weight:800`;
+        }
+    },3500);
 }
 async function openSelectedCase(){
     if(isOpening||!currentCase||!userId)return;isOpening=true;const b=document.getElementById('openBtn');b.disabled=true;fillStrip();
