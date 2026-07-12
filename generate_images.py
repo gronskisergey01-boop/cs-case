@@ -31,3 +31,9 @@ for name in skins:
     img.save(f"static/skins/{name}.png")
     print(f"{name}.png создан")
 print("Готово!")
+# Картинка для пользовательских кейсов
+custom_case = Image.new('RGB', (250, 200), color=(60, 60, 80))
+draw = ImageDraw.Draw(custom_case)
+draw.text((50, 85), "CUSTOM CASE", fill=(255, 255, 255))
+custom_case.save("static/cases/custom.png")
+print("custom.png создан")
