@@ -2,68 +2,27 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
-from case_engine import open_case
 from models import CASES, SKINS, UPGRADE_COST, UPGRADE_REQUIRED
+from database import *
 import uuid, json, os, random
 from datetime import datetime
 from urllib.parse import urlencode
+from case_engine import open_case
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-USERS_FILE = "users.json"
-DROPS_FILE = "drops.json"
-CUSTOM_CASES_FILE = "custom_cases.json"
 SITE_URL = os.getenv("SITE_URL", "https://cs-case.onrender.com")
-
-def load_users():
-    if os.path.exists(USERS_FILE):
-        try:
-            with open(USERS_FILE, "r") as f:
-                c = f.read()
-                if c.strip(): return json.loads(c)
-        except: pass
-    return {}
-
-def save_users(u):
-    with open(USERS_FILE, "w") as f:
-        json.dump(u, f, ensure_ascii=False, indent=2)
-
-def load_drops():
-    if os.path.exists(DROPS_FILE):
-        try:
-            with open(DROPS_FILE, "r") as f:
-                c = f.read()
-                if c.strip(): return json.loads(c)
-        except: pass
-    return []
-
-def save_drops(d):
-    with open(DROPS_FILE, "w") as f:
-        json.dump(d[-100:], f, ensure_ascii=False, indent=2)
-
-def load_custom_cases():
-    if os.path.exists(CUSTOM_CASES_FILE):
-        try:
-            with open(CUSTOM_CASES_FILE, "r") as f:
-                c = f.read()
-                if c.strip(): return json.loads(c)
-        except: pass
-    return []
-
-def save_custom_cases(c):
-    with open(CUSTOM_CASES_FILE, "w") as f:
-        json.dump(c, f, ensure_ascii=False, indent=2)
-
-users = load_users()
-drops = load_drops()
-custom_cases = load_custom_cases()
-
-def init_stats():
-    return {"total_opened": 0, "total_spent": 0, "total_earned": 0, "most_expensive": None, "best_drop": None}
-
 SITE_COMMISSION = 0.25
+
+# Инициализируем БД и загружаем обычные кейсы
+init_db()
+
+# Загружаем обычные кейсы в БД при старте
+for case_id, case_data in CASES.items():
+    add_case(case_id, case_data["name"], case_data["image"], case_data["price"], case_data.get("type", "weapon"))
+    add_case_items(case_id, case_data["items"])
 
 # ========== STEAM LOGIN ==========
 
@@ -84,208 +43,137 @@ def steam_login():
 async def steam_callback(request: Request):
     params = dict(request.query_params)
     claimed_id = params.get("openid.claimed_id", "")
-    
     if not claimed_id:
-        return HTMLResponse(f"""<html><body style="background:#0a0a0f;color:#fff;font-family:Arial;padding:40px"><h2>Ошибка</h2><pre>{json.dumps(params,indent=2)}</pre><a href="/" style="color:#ffd940">На главную</a></body></html>""")
+        return HTMLResponse("<html><body style='background:#0a0a0f;color:#fff;padding:40px'><h2>Ошибка входа</h2><a href='/' style='color:#ffd940'>На главную</a></body></html>")
     
     steam_id = claimed_id.split("/")[-1]
+    user = get_user_by_steam_id(steam_id)
     
-    uid = None
-    for u_id, data in users.items():
-        if data.get("steam_id") == steam_id:
-            uid = u_id
-            break
-    
-    username = f"Player_{steam_id[-4:]}"
-    
-    if not uid:
+    if not user:
         uid = str(uuid.uuid4())[:8]
-        users[uid] = {"steam_id": steam_id, "username": username, "avatar": "", "balance": 1000, "inventory": [], "stats": init_stats(), "trade_url": ""}
-    else:
-        username = users[uid].get("username", username)
+        username = f"Player_{steam_id[-4:]}"
+        create_user(uid, steam_id, username)
+        user = get_user(uid)
     
-    save_users(users)
-    
-    return HTMLResponse(f"""<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="background:#0a0a0f;color:#fff;font-family:Arial;text-align:center;padding-top:100px"><h2>Вход выполнен!</h2><script>localStorage.setItem('cs_user_id','{uid}');localStorage.setItem('cs_username','{username}');window.location.href='/';</script></body></html>""")
+    return HTMLResponse(f"""<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="background:#0a0a0f;color:#fff;text-align:center;padding-top:100px"><h2>Вход выполнен!</h2><script>localStorage.setItem('cs_user_id','{user["id"]}');localStorage.setItem('cs_username','{user["username"]}');window.location.href='/';</script></body></html>""")
 
 # ========== API ==========
 
 @app.get("/api/cases")
 def get_cases():
-    cases_list = [{"id": cid, "name": c["name"], "image": c["image"], "price": c["price"], "type": c.get("type","weapon")} for cid, c in CASES.items()]
-    for cc in custom_cases:
-        cases_list.append({"id": cc["id"], "name": cc["name"], "image": cc["image"], "price": cc["price"], "type": "custom", "creator": cc["creator_name"]})
-    return {"cases": cases_list}
+    cases = get_all_cases()
+    return {"cases": cases}
 
 @app.get("/api/skins_database")
 def skins_database():
-    skins_list = []
-    for name, data in SKINS.items():
-        skins_list.append({"name": name, "rarity": data["rarity"], "color": data["color"], "image": data["image"], "price": data["price"], "type": data.get("type","weapon")})
-    return {"skins": skins_list}
+    return {"skins": [{"name": n, "rarity": d["rarity"], "color": d["color"], "image": d["image"], "price": d["price"]} for n, d in SKINS.items()]}
 
 @app.post("/api/create_case")
 def create_custom_case(user_id: str, name: str, items_json: str):
-    if user_id not in users: raise HTTPException(404, "Пользователь не найден")
+    user = get_user(user_id)
+    if not user: raise HTTPException(404)
     try:
         items = json.loads(items_json)
     except:
         raise HTTPException(400, "Неверный формат")
-    if not items or len(items) < 5: raise HTTPException(400, "Минимум 5 скинов")
+    if len(items) < 5: raise HTTPException(400, "Минимум 5 скинов")
     if len(items) > 30: raise HTTPException(400, "Максимум 30 скинов")
     
     total_chance = sum(i["chance"] for i in items)
-    avg_price = 0
-    for i in items:
-        sd = SKINS.get(i["skin"])
-        if not sd: raise HTTPException(400, f"Скин не найден: {i['skin']}")
-        avg_price += sd["price"] * (i["chance"] / total_chance)
-    
+    avg_price = sum(SKINS[i["skin"]]["price"] * (i["chance"] / total_chance) for i in items)
     case_price = max(10, int(avg_price * (1 + SITE_COMMISSION)))
     case_id = str(uuid.uuid4())[:8]
     
-    custom_cases.append({
-        "id": case_id, "name": name, "creator_id": user_id,
-        "creator_name": users[user_id]["username"],
-        "price": case_price, "avg_value": int(avg_price),
-        "image": "/static/cases/custom.png", "type": "custom",
-        "items": items, "opens": 0
-    })
-    save_custom_cases(custom_cases)
-    return {"case": custom_cases[-1]}
+    add_case(case_id, name, "/static/cases/custom.png", case_price, "custom", user_id, user["username"], 1)
+    add_case_items(case_id, items)
+    
+    return {"case": {"id": case_id, "name": name, "price": case_price}}
 
 @app.get("/api/case_items")
 def case_items(case_id: str):
-    # Обычные кейсы
-    if case_id in CASES:
-        case = CASES[case_id]
-        items = []
-        for item in case["items"]:
-            skin = SKINS.get(item["skin"], {})
-            items.append({"name": item["skin"], "chance": item["chance"], "price": skin.get("price", 0), "color": skin.get("color", "#888"), "rarity": skin.get("rarity", "common"), "image": skin.get("image", "/static/skins/default.png")})
-        items.sort(key=lambda x: {"gold":0,"red":1,"pink":2,"blue":3}.get(x["rarity"],4))
-        return items
-    
-    # Пользовательские кейсы
-    for cc in custom_cases:
-        if cc["id"] == case_id:
-            items = []
-            for item in cc["items"]:
-                skin = SKINS.get(item["skin"], {})
-                items.append({"name": item["skin"], "chance": item["chance"], "price": skin.get("price", 0), "color": skin.get("color", "#888"), "rarity": skin.get("rarity", "common"), "image": skin.get("image", "/static/skins/default.png")})
-            return items
-    
-    raise HTTPException(400, "Кейс не найден")
+    items = get_case_items(case_id)
+    result = []
+    for item in items:
+        skin = SKINS.get(item["skin_name"], {})
+        result.append({"name": item["skin_name"], "chance": item["chance"], "price": skin.get("price", 0), "color": skin.get("color", "#888"), "rarity": skin.get("rarity", "common"), "image": skin.get("image", "/static/skins/default.png")})
+    return result
 
 @app.get("/api/info")
 def info(user_id: str):
-    if user_id not in users: raise HTTPException(404)
-    u = users[user_id]
-    if "stats" not in u: u["stats"] = init_stats()
-    return {"username": u["username"], "balance": u["balance"], "inventory": u["inventory"], "stats": u["stats"]}
-
-@app.get("/api/user_profile")
-def user_profile(user_id: str):
-    if user_id not in users: raise HTTPException(404)
-    u = users[user_id]
-    return {"username": u["username"], "stats": u.get("stats",init_stats()), "inventory_count": len(u.get("inventory",[]))}
+    user = get_user(user_id)
+    if not user: raise HTTPException(404)
+    inventory = get_inventory(user_id)
+    return {"username": user["username"], "balance": user["balance"], "inventory": inventory, "stats": {"total_opened": user["total_opened"], "total_spent": user["total_spent"], "total_earned": user["total_earned"]}}
 
 @app.post("/api/open")
 def open_case_endpoint(user_id: str, case_id: str):
-    if user_id not in users: raise HTTPException(404)
-    u = users[user_id]
-    if "stats" not in u: u["stats"] = init_stats()
+    user = get_user(user_id)
+    if not user: raise HTTPException(404)
     
-    # Обычный кейс
-    if case_id in CASES:
-        case = CASES[case_id]
-        if u["balance"] < case["price"]: raise HTTPException(400, f"Нужно {case['price']}💰")
-        u["balance"] -= case["price"]
-        u["stats"]["total_opened"] += 1
-        u["stats"]["total_spent"] += case["price"]
-        result = open_case(case)
-        u["inventory"].append(result)
-        save_users(users)
-        drops.append({"username": u["username"], "user_id": user_id, "skin_name": result["name"], "skin_image": result["image"], "rarity": result["rarity"], "color": result["color"], "price": result["price"], "case_name": case["name"], "time": datetime.now().isoformat()})
-        save_drops(drops)
-        return {"result": result, "balance": u["balance"]}
+    cases = get_all_cases()
+    case = next((c for c in cases if c["id"] == case_id), None)
+    if not case: raise HTTPException(400, "Кейс не найден")
+    if user["balance"] < case["price"]: raise HTTPException(400, f"Нужно {case['price']}💰")
     
-    # Пользовательский кейс
-    for cc in custom_cases:
-        if cc["id"] == case_id:
-            if u["balance"] < cc["price"]: raise HTTPException(400, f"Нужно {cc['price']}💰")
-            u["balance"] -= cc["price"]
-            cc["opens"] += 1
-            wheel = []
-            for item in cc["items"]:
-                wheel.extend([item["skin"]] * int(item["chance"] * 100))
-            winner_name = random.choice(wheel) if wheel else cc["items"][0]["skin"]
-            skin_data = SKINS.get(winner_name, {"rarity":"common","color":"#888","image":"/static/skins/default.png","price":0})
-            result = {"name": winner_name, "rarity": skin_data["rarity"], "color": skin_data["color"], "image": skin_data["image"], "price": skin_data["price"], "type": skin_data.get("type","weapon")}
-            u["inventory"].append(result)
-            if cc["creator_id"] in users:
-                users[cc["creator_id"]]["balance"] += int(cc["price"] * 0.05)
-            save_users(users)
-            save_custom_cases(custom_cases)
-            drops.append({"username": u["username"], "user_id": user_id, "skin_name": result["name"], "skin_image": result["image"], "rarity": result["rarity"], "color": result["color"], "price": result["price"], "case_name": cc["name"], "time": datetime.now().isoformat()})
-            save_drops(drops)
-            return {"result": result, "balance": u["balance"]}
+    # Списываем баланс
+    update_balance(user_id, -case["price"])
+    update_user_stats(user_id, spent=case["price"])
     
-    raise HTTPException(400, "Кейс не найден")
+    # Выбираем скин
+    items = get_case_items(case_id)
+    wheel = []
+    for item in items:
+        wheel.extend([item["skin_name"]] * int(item["chance"] * 100))
+    winner_name = random.choice(wheel) if wheel else items[0]["skin_name"]
+    skin_data = SKINS.get(winner_name, {"rarity":"common","color":"#888","image":"/static/skins/default.png","price":0})
+    
+    # Добавляем в инвентарь
+    add_to_inventory(user_id, winner_name, skin_data["rarity"], skin_data["color"], skin_data["image"], skin_data["price"])
+    
+    # Обновляем счётчик кейса
+    increment_case_opens(case_id)
+    
+    # Комиссия создателю
+    if case["creator_id"]:
+        update_balance(case["creator_id"], int(case["price"] * 0.05))
+    
+    # Транзакция
+    updated_user = get_user(user_id)
+    add_transaction(user_id, "open", -case["price"], winner_name, case["name"], f"Открытие кейса", updated_user["balance"])
+    
+    # Дроп в ленту
+    add_drop(user_id, user["username"], winner_name, skin_data["image"], skin_data["rarity"], skin_data["color"], skin_data["price"], case["name"])
+    
+    return {"result": {"name": winner_name, "rarity": skin_data["rarity"], "color": skin_data["color"], "image": skin_data["image"], "price": skin_data["price"]}, "balance": updated_user["balance"]}
 
 @app.get("/api/drops")
-def get_drops():
-    return {"drops": list(reversed(drops[-50:]))}
+def get_drops_list():
+    return {"drops": get_drops(50)}
 
 @app.post("/api/sell")
 def sell(user_id: str, index: int):
-    if user_id not in users: raise HTTPException(404)
-    u = users[user_id]
-    if index < 0 or index >= len(u["inventory"]): raise HTTPException(400)
-    sold = u["inventory"].pop(index)
-    u["balance"] += sold.get("price", 0)
-    save_users(users)
-    return {"sold": sold, "balance": u["balance"], "inventory": u["inventory"]}
-
-@app.post("/api/upgrade")
-def upgrade(user_id: str):
-    if user_id not in users: raise HTTPException(404)
-    u = users[user_id]
-    if u["balance"] < UPGRADE_COST: raise HTTPException(400)
-    by_r = {"blue":[],"pink":[],"red":[],"gold":[]}
-    for i, item in enumerate(u["inventory"]):
-        r = item["rarity"]
-        if r in by_r: by_r[r].append(i)
-    target = None
-    for r in ["blue","pink","red"]:
-        if len(by_r[r]) >= UPGRADE_REQUIRED: target = r; break
-    if not target: raise HTTPException(400, f"Нужно {UPGRADE_REQUIRED} скинов")
-    indices = sorted(by_r[target][-UPGRADE_REQUIRED:], reverse=True)
-    for idx in indices: u["inventory"].pop(idx)
-    next_r = {"blue":"pink","pink":"red","red":"gold"}[target]
-    possible = [(n,d) for n,d in SKINS.items() if d["rarity"]==next_r]
-    cn, cd = random.choice(possible)
-    new_skin = {"name":cn,"rarity":cd["rarity"],"color":cd["color"],"image":cd["image"],"price":cd["price"],"type":cd.get("type","weapon")}
-    u["balance"] -= UPGRADE_COST
-    u["inventory"].append(new_skin)
-    save_users(users)
-    return {"new_skin":new_skin,"balance":u["balance"],"inventory":u["inventory"]}
+    user = get_user(user_id)
+    if not user: raise HTTPException(404)
+    inventory = get_inventory(user_id)
+    if index < 0 or index >= len(inventory): raise HTTPException(400)
+    
+    item = inventory[index]
+    remove_from_inventory(item["id"])
+    update_balance(user_id, item["price"])
+    update_user_stats(user_id, earned=item["price"])
+    
+    updated_user = get_user(user_id)
+    add_transaction(user_id, "sell", item["price"], item["skin_name"], None, "Продажа скина", updated_user["balance"])
+    
+    return {"sold": item, "balance": updated_user["balance"], "inventory": get_inventory(user_id)}
 
 @app.post("/api/add_balance")
 def add_balance(user_id: str, amount: int = 1000):
-    if user_id not in users: raise HTTPException(404)
-    users[user_id]["balance"] += amount
-    save_users(users)
-    return {"balance": users[user_id]["balance"]}
-
-@app.post("/api/withdraw")
-def withdraw(user_id: str, skin_index: int):
-    if user_id not in users: raise HTTPException(404)
-    u = users[user_id]
-    if skin_index < 0 or skin_index >= len(u["inventory"]): raise HTTPException(400)
-    skin = u["inventory"].pop(skin_index)
-    save_users(users)
-    return {"success": True, "message": f"Заявка на вывод {skin['name']} создана"}
+    if not get_user(user_id): raise HTTPException(404)
+    update_balance(user_id, amount)
+    updated_user = get_user(user_id)
+    add_transaction(user_id, "add_balance", amount, None, None, "Пополнение баланса", updated_user["balance"])
+    return {"balance": updated_user["balance"]}
 
 @app.get("/")
 def main():
